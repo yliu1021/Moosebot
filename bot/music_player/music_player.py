@@ -52,6 +52,7 @@ class MusicPlayer:
             "!next": (self.queue_next, "!next <song name>: adds a song to the front of the queue"),
             "!queue": (self.show_queue, "shows the queue"),
             "!song": (self.now_playing, "shows the current song playing"),
+            "!leave": (self.leave, "leaves the server")
         }
         if cmd == "!help":
             with self.text_channel.typing():
@@ -65,14 +66,17 @@ class MusicPlayer:
         if not message.author.voice:
             await self.text_channel.send("You need to be in a voice channel")
             return
-        if not message.guild.voice_client:
-            logging.warning("Unable to get server %s voice client", message.guild)
+        guild_voice_client: typing.Optional[discord.VoiceClient] = message.guild.voice_client
+        if not guild_voice_client:
             await message.author.voice.channel.connect()
             self.song_playback_task = asyncio.Task(self._music_playback_task())
+        elif guild_voice_client.channel != message.author.voice.channel:
+            await self.text_channel.send("You're not in the same voice channel")
+            return
         self.voice_client = message.guild.voice_client
         await fn[cmd][0](" ".join(args))
 
-    async def play(self, query: str):
+    async def play(self, query: str): 
         """
         Automatically queues up the next song and starts the music task if it hasn't started yet
         :param query: The song to queue up
@@ -152,6 +156,13 @@ class MusicPlayer:
             await self.text_channel.send(f"Now playing: {_format_song(self.current_song)}")
         else:
             await self.text_channel.send("Nothing playing")
+
+    async def leave(self, *args):
+        """
+        Leaves the current channel
+        :return:
+        """
+        await self.voice_client.disconnect()
 
     # PRIVATE METHODS
 
