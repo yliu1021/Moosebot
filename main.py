@@ -46,7 +46,7 @@ async def play_music_queue(voice_client):
         video_url = video_data["url"]
         await lock.acquire()
         voice_client.play(
-            discord.FFmpegPCMAudio(video_url, executable=".\\ffmpeg", **FFMPEG_OPTIONS),
+            discord.FFmpegPCMAudio(video_url, executable=".\\bin\\ffmpeg", **FFMPEG_OPTIONS),
             after=lambda e: loop.call_soon_threadsafe(lock.release)
         )
         await lock.acquire()
