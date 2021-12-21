@@ -6,3 +6,6 @@
 
 # Bin
 bin/
+
+# Python
+__pycache__/
