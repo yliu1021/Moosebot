@@ -38,23 +38,30 @@ class MusicPlayer:
         self.song_playback_task: typing.Optional[asyncio.Task] = None
 
     async def received_message(self, message: discord.Message):
-        cmd, *args = message.content.split(" ")
-        fn = {
-            "!play": self.play,
-            "!resume": self.resume,
-            "!pause": self.pause,
-            "!stop": self.stop,
-            "!skip": self.skip,
-            "!shuffle": self.shuffle,
-            "!next": self.queue_next,
-            "!queue": self.show_queue,
-            "!nowplaying": self.now_playing,
-        }
-        if cmd not in fn:
-            return
         if not isinstance(message.channel, discord.TextChannel):
             return
         self.text_channel = message.channel
+        cmd, *args = message.content.split(" ")
+        fn = {
+            "!play": (self.play, "!play <song name>: adds a song to queue"),
+            "!resume": (self.resume, "resumes playback"),
+            "!pause": (self.pause, "pauses playback"),
+            "!stop": (self.stop, "stops playback and clears queue"),
+            "!skip": (self.skip, "skips the current song"),
+            "!shuffle": (self.shuffle, "shuffles the queue"),
+            "!next": (self.queue_next, "!next <song name>: adds a song to the front of the queue"),
+            "!queue": (self.show_queue, "shows the queue"),
+            "!song": (self.now_playing, "shows the current song playing"),
+        }
+        if cmd == "!help":
+            with self.text_channel.typing():
+                await self.text_channel.send("**Moosebot Music Commands**")
+                await self.text_channel.send(
+                    "\n".join([f"**{key}** - *{val[1]}*" for key, val in fn.items()])
+                )
+            return
+        if cmd not in fn:
+            return
         if not message.author.voice:
             await self.text_channel.send("You need to be in a voice channel")
             return
@@ -63,7 +70,7 @@ class MusicPlayer:
             await message.author.voice.channel.connect()
             self.song_playback_task = asyncio.Task(self._music_playback_task())
         self.voice_client = message.guild.voice_client
-        await fn[cmd](" ".join(args))
+        await fn[cmd][0](" ".join(args))
 
     async def play(self, query: str):
         """
@@ -131,9 +138,10 @@ class MusicPlayer:
         :param args:
         :return:
         """
-        await self.text_channel.send(f"Queue: {len(self.song_queue)} songs")
-        for song in self.song_queue:
-            await self.text_channel.send(_format_song(song))
+        with self.text_channel.typing():
+            await self.text_channel.send(f"Queue: {len(self.song_queue)} songs")
+            for song in self.song_queue:
+                await self.text_channel.send(_format_song(song))
 
     async def now_playing(self, *args):
         """
