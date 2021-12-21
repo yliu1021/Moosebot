@@ -18,8 +18,11 @@ _FFMPEG_OPTIONS = {
 }
 
 
-async def _get_song(query: str) -> Song:
-    video_id = await youtube.get_youtube_video_id(query)
+async def _get_song(query: str) -> typing.Optional[Song]:
+    video_ids = await youtube.get_youtube_video_id(query)
+    if len(video_ids) == 0:
+        return None
+    video_id = video_ids[0]
     song = await youtube.get_song_from_youtube_id(video_id)
     return song
 
@@ -82,7 +85,13 @@ class MusicPlayer:
         :param query: The song to queue up
         :return:
         """
+        if len(query) == 0:
+            await self.text_channel.send("!play <song name>")
+            return
         song = await _get_song(query)
+        if song is None:
+            await self.text_channel.send("Song not found")
+            return
         logger.info("Adding song %s to end of queue", song)
         self.song_queue.append(song)
         await self.text_channel.send(f"Added song\n{_format_song(song)}")
@@ -182,6 +191,8 @@ class MusicPlayer:
         def song_finished_cb(err):
             if err:
                 logger.warning("Song finished with error: %s", err)
+            else:
+                logger.info("Song finished")
             loop.call_soon_threadsafe(song_finished.set)
             self.current_song = None
 

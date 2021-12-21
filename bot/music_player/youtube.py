@@ -25,7 +25,7 @@ async def get_youtube_video_id(query: str) -> str:
         "https://www.youtube.com/results?search_query=" + query
     )
     video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
-    return video_ids[0]
+    return video_ids
 
 
 async def get_song_from_youtube_id(video_id: str) -> Song:
