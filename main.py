@@ -1,28 +1,27 @@
 import asyncio
-from collections import deque
-import discord
-from discord.ext import commands
 import logging
-import youtube_dl
-import urllib.request
-import urllib.parse
-import re
-from typing import Optional
-import random
-import dotenv
 import os
+import random
+import re
+import urllib.parse
+import urllib.request
+from collections import deque
+from typing import Optional
+
+import discord
+import dotenv
+import youtube_dl
+from discord.ext import commands
 
 logger = logging.getLogger(__name__)
 
 client = discord.Client()
-bot = commands.Bot(command_prefix='!')
+bot = commands.Bot(command_prefix="!")
 
-ytdl = youtube_dl.YoutubeDL({
-    "format": "bestaudio"
-})
+ytdl = youtube_dl.YoutubeDL({"format": "bestaudio"})
 FFMPEG_OPTIONS = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn'
+    "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
+    "options": "-vn",
 }
 
 music_queue = deque()
@@ -38,7 +37,9 @@ async def play_music_queue(voice_client):
             await asyncio.sleep(0.5)
         video_id = music_queue.popleft()
         loop = asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(video_id, download=False))
+        data = await loop.run_in_executor(
+            None, lambda: ytdl.extract_info(video_id, download=False)
+        )
         if "entries" in data:
             video_data = data["entries"][0]
         else:
@@ -46,8 +47,10 @@ async def play_music_queue(voice_client):
         video_url = video_data["url"]
         await lock.acquire()
         voice_client.play(
-            discord.FFmpegPCMAudio(video_url, executable=".\\bin\\ffmpeg", **FFMPEG_OPTIONS),
-            after=lambda e: loop.call_soon_threadsafe(lock.release)
+            discord.FFmpegPCMAudio(
+                video_url, executable=".\\bin\\ffmpeg", **FFMPEG_OPTIONS
+            ),
+            after=lambda e: loop.call_soon_threadsafe(lock.release),
         )
         await lock.acquire()
         lock.release()
@@ -56,7 +59,9 @@ async def play_music_queue(voice_client):
 def get_youtube_video_id(search):
     search = urllib.parse.quote(search)
     logger.info("Searching: %s", search)
-    html = urllib.request.urlopen("https://www.youtube.com/results?search_query=" + search)
+    html = urllib.request.urlopen(
+        "https://www.youtube.com/results?search_query=" + search
+    )
     video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
     return video_ids[0]
 
@@ -103,7 +108,9 @@ async def queue(ctx):
 @bot.command(name="join")
 async def join(ctx):
     if not ctx.message.author.voice:
-        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
+        await ctx.send(
+            "{} is not connected to a voice channel".format(ctx.message.author.name)
+        )
         return
     else:
         channel = ctx.message.author.voice.channel
@@ -127,7 +134,9 @@ async def resume(ctx):
     if voice_client.is_paused():
         voice_client.resume()
     else:
-        await ctx.send("The bot was not playing anything before this. Use play_song command")
+        await ctx.send(
+            "The bot was not playing anything before this. Use play_song command"
+        )
 
 
 @bot.command(name="stop")
