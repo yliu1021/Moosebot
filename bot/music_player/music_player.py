@@ -25,7 +25,7 @@ async def _get_song(query: str) -> Song:
 
 
 def _format_song(song: Song) -> str:
-    return f"**{song.title}**\nhttps://www.youtube.com/results?search_query={song.video_id}"
+    return f"**{song.title}**\nhttps://www.youtube.com/watch?v={song.video_id}"
 
 
 class MusicPlayer:
