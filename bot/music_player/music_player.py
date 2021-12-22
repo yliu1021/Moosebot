@@ -228,7 +228,6 @@ class MusicPlayer:
             video_data = data["entries"][0]
         else:
             video_data = data
-        print(list(video_data.keys()))
         log_data = {}
         for log_field in _song_log_fields:
             log_data[log_field] = video_data.get(log_field)
