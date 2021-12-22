@@ -13,7 +13,7 @@ FFMPEG_OPTIONS = {
 }
 
 
-async def get_youtube_video_id(query: str) -> str:
+async def get_youtube_video_id(query: str) -> list[str]:
     """
     Queries YouTube for a video id
     :param query: a human-made query
