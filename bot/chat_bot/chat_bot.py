@@ -108,9 +108,10 @@ class ChatBot:
         for intent in wit_resp["intents"]:
             if intent["confidence"] < threshold:
                 continue
-            if intent["name"] == "get_gamers":
+            intent_name = intent["name"]
+            if intent_name == "get_gamers":
                 await _get_gamers(message)
-            if intent["name"] == "communist_score_change":
+            if intent_name == "communist_score_change":
                 net_confidence = 0
                 for score in wit_resp["traits"].get("communist_score", []):
                     if score["value"] == "increase":
