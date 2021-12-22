@@ -1,11 +1,12 @@
 import asyncio
-import os.path
-from collections import deque
 import logging
-import typing
+import os.path
 import random
+import typing
+from collections import deque
 
 import discord
+
 from bot.music_player import Song
 
 from . import youtube
@@ -52,10 +53,13 @@ class MusicPlayer:
             "!stop": (self.stop, "stops playback and clears queue"),
             "!skip": (self.skip, "skips the current song"),
             "!shuffle": (self.shuffle, "shuffles the queue"),
-            "!next": (self.queue_next, "!next <song name>: adds a song to the front of the queue"),
+            "!next": (
+                self.queue_next,
+                "!next <song name>: adds a song to the front of the queue",
+            ),
             "!queue": (self.show_queue, "shows the queue"),
             "!song": (self.now_playing, "shows the current song playing"),
-            "!leave": (self.leave, "leaves the server")
+            "!leave": (self.leave, "leaves the server"),
         }
         if cmd == "!help":
             with self.text_channel.typing():
@@ -69,7 +73,9 @@ class MusicPlayer:
         if not message.author.voice:
             await self.text_channel.send("You need to be in a voice channel")
             return
-        guild_voice_client: typing.Optional[discord.VoiceClient] = message.guild.voice_client
+        guild_voice_client: typing.Optional[
+            discord.VoiceClient
+        ] = message.guild.voice_client
         if not guild_voice_client:
             await message.author.voice.channel.connect()
             self.song_playback_task = asyncio.Task(self._music_playback_task())
@@ -79,7 +85,7 @@ class MusicPlayer:
         self.voice_client = message.guild.voice_client
         await fn[cmd][0](" ".join(args))
 
-    async def play(self, query: str): 
+    async def play(self, query: str):
         """
         Automatically queues up the next song and starts the music task if it hasn't started yet
         :param query: The song to queue up
@@ -162,7 +168,9 @@ class MusicPlayer:
         :return:
         """
         if self.current_song:
-            await self.text_channel.send(f"Now playing: {_format_song(self.current_song)}")
+            await self.text_channel.send(
+                f"Now playing: {_format_song(self.current_song)}"
+            )
         else:
             await self.text_channel.send("Nothing playing")
 
@@ -200,6 +208,6 @@ class MusicPlayer:
             discord.FFmpegPCMAudio(
                 song.url, executable=os.path.join("bin", "ffmpeg"), **_FFMPEG_OPTIONS
             ),
-            after=song_finished_cb
+            after=song_finished_cb,
         )
         await song_finished.wait()

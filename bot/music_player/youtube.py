@@ -1,11 +1,10 @@
+import re
 import urllib.parse
 import urllib.request
-import re
 
 import youtube_dl
 
 from .song import Song
-
 
 ytdl = youtube_dl.YoutubeDL({"format": "bestaudio"})
 FFMPEG_OPTIONS = {
@@ -34,4 +33,6 @@ async def get_song_from_youtube_id(video_id: str) -> Song:
         video_data = data["entries"][0]
     else:
         video_data = data
-    return Song(url=video_data["url"], video_id=video_data["id"], title=video_data["title"])
+    return Song(
+        url=video_data["url"], video_id=video_data["id"], title=video_data["title"]
+    )
