@@ -99,7 +99,9 @@ class ChatBot:
     async def receive_message(self, message: discord.Message):
         loop = asyncio.get_event_loop()
         try:
-            wit_resp = await loop.run_in_executor(None, self.wit.message, message.content)
+            wit_resp = await loop.run_in_executor(
+                None, self.wit.message, message.content
+            )
         except wit.wit.WitError:
             logger.exception("Wit error")
             return

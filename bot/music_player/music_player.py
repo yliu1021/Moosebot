@@ -4,29 +4,26 @@ import os.path
 import random
 import typing
 from collections import deque
+import urllib.parse
+import urllib.request
+import re
 
 import discord
+import youtube_dl
 
+from bot import analytics
 from bot.music_player import Song
-
-from . import youtube
 
 logger = logging.getLogger(__name__)
 
+_ytdl = youtube_dl.YoutubeDL({"format": "bestaudio"})
 _FFMPEG_OPTIONS = {
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
     "options": "-vn",
 }
-
-
-async def _get_song(query: str) -> typing.Optional[Song]:
-    video_ids = await youtube.get_youtube_video_id(query)
-    if len(video_ids) == 0:
-        return None
-    video_id = video_ids[0]
-    song = await youtube.get_song_from_youtube_id(video_id)
-    return song
-
+_song_log_fields = [
+    "id", "title", "duration", "view_count", "like_count", "track", "artist", "album", "creator"
+]
 
 def _format_song(song: Song) -> str:
     return f"**{song.title}**\n<https://www.youtube.com/watch?v={song.video_id}>"
@@ -40,6 +37,7 @@ class MusicPlayer:
         self.song_queue: deque[Song] = deque()
         self.current_song: typing.Optional[Song] = None
         self.song_playback_task: typing.Optional[asyncio.Task] = None
+        self.analytics_table = analytics.get_table("music_player")
 
     async def received_message(self, message: discord.Message):
         if not isinstance(message.channel, discord.TextChannel):
@@ -83,18 +81,19 @@ class MusicPlayer:
             await self.text_channel.send("You're not in the same voice channel")
             return
         self.voice_client = message.guild.voice_client
-        await fn[cmd][0](" ".join(args))
+        await fn[cmd][0](" ".join(args), message.author)
 
-    async def play(self, query: str):
+    async def play(self, query: str, requester: discord.User):
         """
         Automatically queues up the next song and starts the music task if it hasn't started yet
         :param query: The song to queue up
+        :param requester: Discord user that made the request
         :return:
         """
         if len(query) == 0:
             await self.text_channel.send("!play <song name>")
             return
-        song = await _get_song(query)
+        song = await self._get_song(query, requester)
         if song is None:
             await self.text_channel.send("Song not found")
             return
@@ -140,13 +139,14 @@ class MusicPlayer:
         random.shuffle(songs)
         self.song_queue = deque(songs)
 
-    async def queue_next(self, query: str):
+    async def queue_next(self, query: str, requester: discord.User):
         """
         Adds a new song at the front of the queue (not at the end)
         :param query: the song to play next
+        :param requester: Discord user that made the request
         :return:
         """
-        song = await _get_song(query)
+        song = await self._get_song(query, requester)
         logger.info("Adding song %s to front of queue", song)
         self.song_queue.appendleft(song)
         await self.text_channel.send(f"Playing next\n{_format_song(song)}")
@@ -211,3 +211,29 @@ class MusicPlayer:
             after=song_finished_cb,
         )
         await song_finished.wait()
+
+    async def _get_song(
+        self, query: str, requester: discord.User
+    ) -> typing.Optional[Song]:
+        query = urllib.parse.quote(query)
+        html = urllib.request.urlopen(
+            "https://www.youtube.com/results?search_query=" + query
+        )
+        video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+        if len(video_ids) == 0:
+            return None
+        video_id = video_ids[0]
+        data = _ytdl.extract_info(video_id, download=False)
+        if "entries" in data:
+            video_data = data["entries"][0]
+        else:
+            video_data = data
+        print(list(video_data.keys()))
+        log_data = {}
+        for log_field in _song_log_fields:
+            log_data[log_field] = video_data.get(log_field)
+        log_data["discord_requester"] = f"{requester.name}#{requester.discriminator}"
+        self.analytics_table.log(log_data)
+        return Song(
+            url=video_data["url"], video_id=video_data["id"], title=video_data["title"]
+        )
