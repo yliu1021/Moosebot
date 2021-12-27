@@ -25,6 +25,7 @@ _song_log_fields = [
     "id", "title", "duration", "view_count", "like_count", "track", "artist", "album", "creator"
 ]
 
+
 def _format_song(song: Song) -> str:
     return f"**{song.title}**\n<https://www.youtube.com/watch?v={song.video_id}>"
 
@@ -213,7 +214,7 @@ class MusicPlayer:
         await song_finished.wait()
 
     async def _get_song(
-        self, query: str, requester: discord.User
+            self, query: str, requester: discord.User
     ) -> typing.Optional[Song]:
         query = urllib.parse.quote(query)
         html = urllib.request.urlopen(
